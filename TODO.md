@@ -1,0 +1,20 @@
+# TODO
+- [] add paging
+- [] restructure scrape songs
+    - main
+    - scrape
+- [] generalize the requester
+- [] compile pdfs together
+- [] write a TOC with hyperlinks
+- [] give headers, footers, pages and title page
+- [] write alternative index's
+    - energy level
+    - subject
+    - top 50 songs of all time
+    - top 50 best camp fire songs of all time
+    - top 50 most ariel and raya songs of all time
+    - 10 worst songs of all time
+    - weather
+    - emotion
+    - 50 wildest songs of all time
+    - top 50 cantor songs of all time
