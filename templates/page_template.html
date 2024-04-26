@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title style="text-align: center; font-size: 20px; font-weight: bold;">TopChordsBook</title>
+    <style>
+        /* CSS styles for the title div */
+        body {
+            max-width: 21cm;
+            margin: 0 auto; /* Center content horizontally */
+            padding: 1cm; /* Add some padding for better readability */
+        }
+        #title {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        /* CSS styles for the metadata div */
+        #metadata {
+            text-align: center;
+            font-size: 10px;
+            margin-bottom: 4px;
+        }
+        #chord-diagrams {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: space-around; /* Adjust as needed */
+        }
+        .chord-diagram {
+          width: 125px; /* Adjust the width of each diagram */
+          margin-bottom: 2px; /* Adjust spacing between diagrams */
+        }
+        .lyrics-line {
+          white-space: pre-wrap;
+        }
+        span {
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <div id="title">
+          <!-- Title will be inserted here dynamically -->
+    </div>
+    <div id="metadata">
+        <!-- Metadata will be inserted here dynamically -->
+    </div>
+
+    <div id="chord-diagrams">
+        <!-- Chord diagrams will be inserted here dynamically -->
+    </div>
+
+    <div id="lyrics-and-chords">
+        <!-- Lyrics and chords content will be inserted here dynamically -->
+    </div>
+</body>
+</html>

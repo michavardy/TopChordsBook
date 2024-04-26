@@ -1,5 +1,5 @@
 from bs4 import BeautifulSoup
-from bs4.element import ResultSet, Tag
+from bs4.element import ResultSet, Tag, NavigableString
 from pathlib import Path
 import pdfkit
 import json
@@ -93,7 +93,7 @@ def extract_meta_data(table: Tag) -> Meta_Data:
          ]))
     return Meta_Data(**table_dict)
 
-def extract_pdf_b64(article_div: Tag) -> bytes:
+def extract_pdf_b64(article_div: Tag) -> str:
     file_path = 'output.pdf'
     page = article_div.find('section', class_='OnD3d kmZt1')
     options = {'page-size': 'Letter', 'margin-top': '0.75in', 'margin-right': '0.75in', 'margin-bottom': '0.75in', 'margin-left': '0.75in',}
@@ -103,14 +103,16 @@ def extract_pdf_b64(article_div: Tag) -> bytes:
     #with open("test_decoded_pdf.pdf", "wb") as pdf_file:
     #    pdf_file.write(base64.b64decode(encoded))
     Path(file_path).unlink()
-    return encoded
+    pdf_b64_str = encoded.decode('utf-8')  # Decode bytes to string
+    pdf_b64_json_serializable = base64.b64encode(pdf_b64_str.encode('utf-8')).decode('utf-8')  # Encode string to base64
+    return pdf_b64_json_serializable
 
 
 async def capture_screenshot(html_content: str, selector:Tag) -> None:
     output_file_path = 'screenshot.png'
     browser = await launch()
     page = await browser.newPage()
-    breakpoint()
+
     await page.setContent(str(html_content))
     chord_div = await page.querySelector(selector)
     if chord_div:
@@ -122,15 +124,40 @@ def extract_chords(article_div: Tag) -> list[str]:
     chords_set = {span['data-name'] for span in chord_spans}
     return [chord for chord in chords_set]
 
+def extract_lyrics_and_chords(article_div:Tag) -> str:
+    # iterate over every chord, lyric line
+    lyrics_and_chords_list = [] 
+    lines = article_div.find_all('span', class_="fsG7q")
+    for line in lines:
+        ChordsAndSpaces = re.compile(r"<span class=\"fciXY _Oy28\".*?>(?P<chord>\w+)<\/span>(?P<space>\s+)", re.MULTILINE|re.DOTALL,)
+        try:
+            lyrics = line.contents[-1].strip()
+        except AttributeError:
+            #AttributeError: 'NoneType' object has no attribute 'group'
+            lyrics=""
+        lyrics_and_chords_segment = "<span class='chords' style='font-weight:bold;'>"
+        # Iterate over the spans
+        for i, span in enumerate(line.contents[:-1]):
+            if isinstance(span, Tag) and span.name == 'span':
+                lyrics_and_chords_segment +=  span.text 
+            elif isinstance(span, NavigableString):
+                lyrics_and_chords_segment += " "*len(span)
+        lyrics_and_chords_segment += "</span>"
+        lyrics_and_chords_segment += "<br></br>" + lyrics + "<br></br>"
+        lyrics_and_chords_list.append(lyrics_and_chords_segment)
+
+    lyrics_and_chords = "".join(lyrics_and_chords_list)
+    return lyrics_and_chords
+
+
 async def get_song_content(songs: list[Song_Data]) -> None:
     song_content_dicts = []
-    for song in tqdm(songs, desc=f"extracting song content"):
+    for song in tqdm(songs[:2], desc=f"extracting song content"):
         html = await fetch_content(song.url, 'div.BDmSP')
         article_div = BeautifulSoup(html, 'html.parser').find("article", class_="o2tA_ JJ8_m")
         
-        pdf_b64 = extract_pdf_b64(article_div)
-        pdf_b64_str = pdf_b64.decode('utf-8')  # Decode bytes to string
-        pdf_b64_json_serializable = base64.b64encode(pdf_b64_str.encode('utf-8')).decode('utf-8')  # Encode string to base64
+        content_text = extract_lyrics_and_chords(article_div)
+        #pdf_b64 = extract_pdf_b64(article_div)
         metadata= extract_meta_data(article_div.find('div', class_='P5g5A _PZAs'))
         chords=extract_chords(article_div)
         
@@ -138,11 +165,12 @@ async def get_song_content(songs: list[Song_Data]) -> None:
             "song": song.__dict__,
             "metadata": metadata.__dict__,
             "chords": ", ".join(chords),
-            "pdf_b64": pdf_b64_json_serializable  # Use the base64 string
+            "content":content_text
+            #"pdf_b64": pdf_b64  # Use the base64 string
         }
         song_content_dicts.append(song_content_dict)
     
-    with open('song_content.json', 'w') as json_file:
+    with open('data/song_content.json', 'w') as json_file:
         json.dump(song_content_dicts, json_file, indent=4)
 
 
@@ -150,7 +178,7 @@ async def get_song_content(songs: list[Song_Data]) -> None:
 # Main function to scrape and compile for all decades
 async def main():
     #await get_all_songs()
-    songs = [Song_Data(**song) for song in json.loads(Path('songs.json').read_text())]
+    songs = [Song_Data(**song) for song in json.loads(Path('data/songs.json').read_text())]
     await get_song_content(songs)
     
 if __name__ == "__main__":

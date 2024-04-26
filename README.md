@@ -42,3 +42,9 @@ This project is a Python-based web scraper that fetches data on the top 100 song
 - `scrape_songs`: Asynchronous function to scrape top songs for a given decade.
 - `compile_pdf`: Function to compile song data into a PDF.
 - `main`: Main function to scrape and compile songs for all decades.
+
+## CLI
+```bash
+"C:\Program Files\Inkscape\bin\inkscapecom" --export-filename="output.svg" --export-type="svg" "output.pdf"
+C&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Em&nbsp;&nbsp;  this will preserve the spacing
+```

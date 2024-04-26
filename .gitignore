@@ -1,2 +1,7 @@
 song_content.json
 wkhtmltopdf.exe
+chords/
+data/
+test/
+*/__pycache__*
+
