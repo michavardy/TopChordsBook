@@ -15,7 +15,7 @@ os.environ['PYPPETEER_CHROMIUM_REVISION'] = PYPPETEER_CHROMIUM_REVISION
 from pyppeteer import launch
 from build_page import build_page_from_template
 # C:\Users\micha.vardy\AppData\Local\pyppeteer\pyppeteer\local-chromium\1263111
-
+SONG_CONTENT = 'data/song_content.json'
 @dataclass
 class Song_Data:
     artist: str
@@ -152,22 +152,13 @@ def extract_lyrics_and_chords(article_div:Tag) -> str:
     lyrics_and_chords = "".join(lyrics_and_chords_list)
     return lyrics_and_chords
 
-
-async def get_song_content(songs: list[Song_Data]) -> None:
-    song_content_dicts = []
-    for song in tqdm(songs, desc=f"extracting song content"):
-        try:
-            html = await fetch_content(song.url, 'div.BDmSP')
-        except:
-            print(f'skipping song: {song.song}')
-            continue
+def get_song_data(html, song) -> dict:
         article_div = BeautifulSoup(html, 'html.parser').find("article", class_="o2tA_ JJ8_m")
-        
         content_text = extract_lyrics_and_chords(article_div)
         #pdf_b64 = extract_pdf_b64(article_div)
         metadata= extract_meta_data(article_div.find('div', class_='P5g5A _PZAs'))
         chords=extract_chords(article_div)
-        song_data = {
+        song_data =  {
             "song": song.__dict__,
             "metadata": metadata.__dict__,
             "chords": ", ".join(chords),
@@ -175,11 +166,37 @@ async def get_song_content(songs: list[Song_Data]) -> None:
             #"pdf_b64": pdf_b64  # Use the base64 string
         }
         song_data['html'] = build_page_from_template(song_data)
-        song_content_dicts.append(song_data)
+        return song_data
+async def fetch_song_content(song):
+    try:
+        return await fetch_content(song.url, 'div.BDmSP')
+    except:
+        print(f'skipping song: {song.song}')
+        return 
+
+def read_existing_song_data():
+    try:
+        with open('data/song_content.json', 'r') as json_file:
+            return json.load(json_file)
+    except:
+        return []
     
+def dump_song_data(song_content_dicts) -> None:
     with open('data/song_content.json', 'w') as json_file:
         json.dump(song_content_dicts, json_file, indent=4)
 
+async def get_song_content(songs: list[Song_Data]) -> None:
+    for song in tqdm(songs, desc=f"extracting song content"):
+        song_content_dicts = read_existing_song_data()
+        if song.song in [sng['song']['song'] for sng in song_content_dicts]:
+            print(f'{song.song} already in file, skipping')
+            continue
+        print(f'fetching song content for {song.song}')
+        html = await fetch_song_content(song)
+        if html:
+            song_data = get_song_data(html, song)
+            song_content_dicts.append(song_data)
+            dump_song_data(song_content_dicts)
 
 
 # Main function to scrape and compile for all decades
