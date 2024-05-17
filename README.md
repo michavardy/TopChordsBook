@@ -27,7 +27,11 @@ This project is a Python-based web scraper that fetches data on the top 100 song
 ## Setup
 1. Install dependencies: `pip install beautifulsoup4 pdfkit tqdm pyppeteer`
 2. Set the `PYPPETEER_CHROMIUM_REVISION` environment variable to '1263111'.
+3. install the Guitar Chord Generator package using pip:
 
+```bash
+pip install git+https://github.com/michavardy/ChordDiagramGenerator.git
+```
 
 ## Usage
 1. Run the `scraper.py` script.
