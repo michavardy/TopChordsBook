@@ -9,9 +9,11 @@ import re
 import base64
 from dataclasses import dataclass
 from tqdm import tqdm
+from typing import Optional
 PYPPETEER_CHROMIUM_REVISION = '1263111'
 os.environ['PYPPETEER_CHROMIUM_REVISION'] = PYPPETEER_CHROMIUM_REVISION
 from pyppeteer import launch
+from build_page import build_page_from_template
 # C:\Users\micha.vardy\AppData\Local\pyppeteer\pyppeteer\local-chromium\1263111
 
 @dataclass
@@ -25,18 +27,19 @@ class Song_Data:
 
 @dataclass
 class Meta_Data:
-    Difficulty: str
-    Tuning: str
-    Key: str
-    Capo: str
+    Difficulty: Optional[str] = None
+    Tuning: Optional[str] = None
+    Key: Optional[str] = None
+    Capo: Optional[str] = None
 
 
 @dataclass
 class Song_Content:
     song: Song_Data
     metadata: Meta_Data
-    pdf_b64: bytes
     chords: list[str]
+    content: str
+    html: str
     
 
 async def fetch_content(url:str, selector:str) -> str:
@@ -152,23 +155,27 @@ def extract_lyrics_and_chords(article_div:Tag) -> str:
 
 async def get_song_content(songs: list[Song_Data]) -> None:
     song_content_dicts = []
-    for song in tqdm(songs[:2], desc=f"extracting song content"):
-        html = await fetch_content(song.url, 'div.BDmSP')
+    for song in tqdm(songs, desc=f"extracting song content"):
+        try:
+            html = await fetch_content(song.url, 'div.BDmSP')
+        except:
+            print(f'skipping song: {song.song}')
+            continue
         article_div = BeautifulSoup(html, 'html.parser').find("article", class_="o2tA_ JJ8_m")
         
         content_text = extract_lyrics_and_chords(article_div)
         #pdf_b64 = extract_pdf_b64(article_div)
         metadata= extract_meta_data(article_div.find('div', class_='P5g5A _PZAs'))
         chords=extract_chords(article_div)
-        
-        song_content_dict = {
+        song_data = {
             "song": song.__dict__,
             "metadata": metadata.__dict__,
             "chords": ", ".join(chords),
             "content":content_text
             #"pdf_b64": pdf_b64  # Use the base64 string
         }
-        song_content_dicts.append(song_content_dict)
+        song_data['html'] = build_page_from_template(song_data)
+        song_content_dicts.append(song_data)
     
     with open('data/song_content.json', 'w') as json_file:
         json.dump(song_content_dicts, json_file, indent=4)
