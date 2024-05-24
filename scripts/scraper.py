@@ -128,29 +128,11 @@ def extract_chords(article_div: Tag) -> list[str]:
     return [chord for chord in chords_set]
 
 def extract_lyrics_and_chords(article_div:Tag) -> str:
-    # iterate over every chord, lyric line
-    lyrics_and_chords_list = [] 
-    lines = article_div.find_all('span', class_="fsG7q")
-    for line in lines:
-        ChordsAndSpaces = re.compile(r"<span class=\"fciXY _Oy28\".*?>(?P<chord>\w+)<\/span>(?P<space>\s+)", re.MULTILINE|re.DOTALL,)
-        try:
-            lyrics = line.contents[-1].strip()
-        except AttributeError:
-            #AttributeError: 'NoneType' object has no attribute 'group'
-            lyrics=""
-        lyrics_and_chords_segment = "<span class='chords' style='font-weight:bold;'>"
-        # Iterate over the spans
-        for i, span in enumerate(line.contents[:-1]):
-            if isinstance(span, Tag) and span.name == 'span':
-                lyrics_and_chords_segment +=  span.text 
-            elif isinstance(span, NavigableString):
-                lyrics_and_chords_segment += " "*len(span)
-        lyrics_and_chords_segment += "</span>"
-        lyrics_and_chords_segment += "<br></br>" + lyrics + "<br></br>"
-        lyrics_and_chords_list.append(lyrics_and_chords_segment)
-
-    lyrics_and_chords = "".join(lyrics_and_chords_list)
-    return lyrics_and_chords
+    song = article_div.find('pre', class_="tK8GG Ty_RP")
+    song = article_div.get_text()
+    song = re.sub(r'\n+','<br>', song)
+    song = song.replace('\'','').replace('|',"")
+    return "<pre>" + song + "</pre>"
 
 def get_song_data(html, song) -> dict:
         article_div = BeautifulSoup(html, 'html.parser').find("article", class_="o2tA_ JJ8_m")
@@ -163,7 +145,6 @@ def get_song_data(html, song) -> dict:
             "metadata": metadata.__dict__,
             "chords": ", ".join(chords),
             "content":content_text
-            #"pdf_b64": pdf_b64  # Use the base64 string
         }
         song_data['html'] = build_page_from_template(song_data)
         return song_data
@@ -186,23 +167,32 @@ def dump_song_data(song_content_dicts) -> None:
         json.dump(song_content_dicts, json_file, indent=4)
 
 async def get_song_content(songs: list[Song_Data]) -> None:
+    song_content_dicts = []
     for song in tqdm(songs, desc=f"extracting song content"):
-        song_content_dicts = read_existing_song_data()
-        if song.song in [sng['song']['song'] for sng in song_content_dicts]:
-            print(f'{song.song} already in file, skipping')
-            continue
+        ## song is already in file
+        #if song.song in [sng['song']['song'] for sng in song_content_dicts]:
+        #    print(f'{song.song} already in file, skipping')
+        #    continue
+        ## song is not yet in file
+        #else:
+        #song_content_dicts = read_existing_song_data()
         print(f'fetching song content for {song.song}')
-        html = await fetch_song_content(song)
-        if html:
-            song_data = get_song_data(html, song)
-            song_content_dicts.append(song_data)
-            dump_song_data(song_content_dicts)
+        try:
+            html = await fetch_song_content(song)
+            if html:
+                song_data = get_song_data(html, song)
+                song_content_dicts.append(song_data)
+                #dump_song_data(song_content_dicts)
+        except:
+            continue
+    breakpoint()
+    dump_song_data(song_content_dicts)
 
 
 # Main function to scrape and compile for all decades
 async def main():
     #await get_all_songs()
-    songs = [Song_Data(**song) for song in json.loads(Path('data/songs.json').read_text())]
+    songs = [Song_Data(**song) for song in json.loads(Path('data/songs.json').read_text())][:3]
     await get_song_content(songs)
     
 if __name__ == "__main__":

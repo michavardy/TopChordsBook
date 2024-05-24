@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from pathlib import Path
 from bs4 import BeautifulSoup
 from bs4.element import  Tag, NavigableString
@@ -48,25 +49,19 @@ def add_chords(soup: Tag, song_data: dict) -> Tag:
 
 def add_lyrics(soup: Tag, song_data: dict) -> Tag:
     # Extract the content from the song_data dictionary
-    lyrics_content = song_data.get('content', '')
-    # Parse the HTML content of the lyrics separately
-    lyrics_soup = BeautifulSoup(lyrics_content, 'html.parser',  preserve_whitespace_tags=['span'])
-    # Find the div element with id "lyrics-and-chords"
-    div_lyrics = soup.find('div', id='lyrics-and-chords')
-    # Check if the div element is found
-    if div_lyrics:
-        # Append the parsed lyrics content to the div's existing content
-        div_lyrics.append(lyrics_soup)
+    lyrics_div = soup.find('div', id='lyrics-and-chords')
+    lyrics_content_soup = BeautifulSoup(song_data.get('content', ''), 'html.parser')
+    lyrics_div.clear()
+    lyrics_div.append(lyrics_content_soup)
     return soup
 
-def build_page_from_template(song_data: dict):
+def build_page_from_template(song_data: dict) -> str:
     template_soup = BeautifulSoup(Path(Template).read_text(), 'html.parser')
     template_soup = add_title(template_soup, song_data)
     template_soup = add_meta_data(template_soup, song_data)
     template_soup = add_chords(template_soup, song_data)
     template_soup = add_lyrics(template_soup, song_data)
-    #Path(f"test/{song_data['song']['song']}.html").write_text(str(template_soup.prettify()))
-    return str(template_soup.prettify())
+    return str(template_soup).replace('\n','').replace('\r','').replace("\\","")
 
 def main():
     data_generator = read_song_content(Data)
